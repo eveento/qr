@@ -1,5 +1,6 @@
 package com.coolio.qr.qrcode;
 
+import com.coolio.qr.controller.QRCodeController;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
 import com.google.zxing.WriterException;
@@ -13,9 +14,13 @@ import org.imgscalr.Scalr;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +46,7 @@ public class QRCodeGenerator {
 
         createLogo(os, qrImage, resize);
 
-//        Files.copy(new ByteArrayInputStream(os.toByteArray()), Paths.get(QRCodeController.QR_CODE_IMAGE_PATH), StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(new ByteArrayInputStream(os.toByteArray()), Paths.get(QRCodeController.QR_CODE_IMAGE_PATH), StandardCopyOption.REPLACE_EXISTING);
 
         return os.toByteArray();
 
@@ -74,25 +79,6 @@ public class QRCodeGenerator {
         return ImageIO.read(url);
     }
 
-    /***
-     *
-     * @param htmlColor e.g. 0xFFFFFFF
-     * @return map html color to int value
-     */
-    private static int toARGB(String htmlColor) {
-        Long intval = Long.decode(htmlColor);
-        long i = intval.intValue();
-
-        int a = (int) ((i >> 24) & 0xFF);
-        int r = (int) ((i >> 16) & 0xFF);
-        int g = (int) ((i >> 8) & 0xFF);
-        int b = (int) (i & 0xFF);
-
-        return ((a & 0xFF) << 24) |
-                ((b & 0xFF) << 16) |
-                ((g & 0xFF) << 8) |
-                ((r & 0xFF));
-    }
 
     /***
      *
@@ -104,20 +90,25 @@ public class QRCodeGenerator {
         if (colors == null || colors.isEmpty()) {
             return new MatrixToImageConfig();
         } else {
-            List<Integer> collect = Stream.of(colors.split(","))
+            List<String> collect = Stream.of(colors.split(","))
                     .map(String::trim)
-                    .map(QRCodeGenerator::toARGB)
+                    .map(e -> "#" + e)
                     .collect(Collectors.toList());
 
             if (collect.size() == 2) {
-                return new MatrixToImageConfig(collect.get(1), collect.get(0));
+                int squareColor = convertHtmlFormatColorToInt(collect.get(0));
+                int backgroundColor = convertHtmlFormatColorToInt(collect.get(1));
+                return new MatrixToImageConfig(squareColor, backgroundColor);
 
             } else {
                 throw new IllegalStateException("Incorrect color format!");
             }
-
         }
+    }
 
+    private static int convertHtmlFormatColorToInt(String color) {
+        Color decodeSquareHtmlFormat = Color.decode(color);
+        return decodeSquareHtmlFormat.getRGB();
     }
 
 }
